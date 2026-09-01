@@ -34,11 +34,18 @@ def process_video(req: ProcessRequest):
         
         # 2. تحميل الفيديو
         video_filename = "downloaded_video.mp4"
-        ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
-            'outtmpl': video_filename,
-            'quiet': True
+       ydl_opts = {
+        'format': 'best',
+        'outtmpl': video_filename,
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
         }
+    }
         
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([req.youtube_url])
