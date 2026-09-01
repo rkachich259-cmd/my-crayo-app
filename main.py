@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
-from pytube import YouTube
+from yt_dlp import YoutubeDL
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
 app = FastAPI()
@@ -31,10 +31,21 @@ def process_video(req: ProcessRequest):
         client = genai.Client(api_key=req.api_key)
         video_filename = "downloaded_video.mp4"
         
-        # تنزيل الفيديو باستخدام pytube لتفادي حظر البوتات
-        yt = YouTube(req.youtube_url)
-        stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-        stream.download(filename=video_filename)
+        ydl_opts = {
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'outtmpl': video_filename,
+            'quiet': True,
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            }
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([req.youtube_url])
 
         video_file = client.files.upload(file=video_filename)
         prompt = "Analyze this video completely and extract the top 3 most engaging clips. Each clip must be between 30 to 60 seconds. Provide timestamp intervals in start_time-end_time format."
