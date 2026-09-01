@@ -2,5 +2,5 @@ fastapi
 uvicorn
 pydantic
 google-genai
-pytube
+yt-dlp
 moviepy
