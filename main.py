@@ -9,7 +9,6 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 
 app = FastAPI()
 
-# السماح للواجهة بالاتصال بالسيرفر بدون حظر (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,64 +28,49 @@ def home():
 @app.post("/process")
 def process_video(req: ProcessRequest):
     try:
-        # 1. إعداد عميل Gemini
         client = genai.Client(api_key=req.api_key)
-        
-        # 2. تحميل الفيديو
         video_filename = "downloaded_video.mp4"
-       ydl_opts = {
-        'format': 'best',
-        'outtmpl': video_filename,
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
+        
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': video_filename,
+            'quiet': True,
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web']
+                }
             }
         }
-    }
-        
+
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([req.youtube_url])
-            
-        # 3. رفع الفيديو للذكاء الاصطناعي وتحليله
+
         video_file = client.files.upload(file=video_filename)
-        prompt = """
-        Analyze this video completely and extract the top 3 most engaging, viral-worthy clips suitable for Shorts/Reels.
-        Each clip must be between 30 to 60 seconds in duration.
-        
-        Format output strictly as:
-        CLIP_START: [start timestamp in total seconds]
-        CLIP_END: [end timestamp in total seconds]
-        ---
-        """
-        
+        prompt = "Analyze this video completely and extract the top 3 most engaging clips. Each clip must be between 30 to 60 seconds. Provide timestamp intervals in start_time-end_time format."
+
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[video_file, prompt]
         )
+
+        timestamps = re.findall(r'(\d+:\d+|\d+)-(\d+:\d+|\d+)', response.text)
         
-        # 4. استخراج التوقيتات وقص الفيديو
-        matches = re.findall(r"CLIP_START:\s*(\d+)\s*CLIP_END:\s*(\d+)", response.text)
-        
-        if not matches:
-            raise Exception("لم يتمكن الذكاء الاصطناعي من قراءة التوقيتات بشكل صحيح.")
-            
-        video = VideoFileClip(video_filename)
+        def to_sec(ts):
+            parts = list(map(int, ts.split(':')))
+            return parts[0] * 60 + parts[1] if len(parts) == 2 else parts[0]
+
         output_files = []
-        
-        for idx, (start, end) in enumerate(matches[:3]):
-            start_sec = int(start)
-            end_sec = int(end)
-            output_name = f"clip_{idx+1}.mp4"
-            
-            new_clip = video.subclip(start_sec, end_sec)
-            new_clip.write_videofile(output_name, codec="libx264", audio_codec="aac", verbose=False, logger=None)
-            output_files.append(output_name)
-            
-        video.close()
-        return {"status": "success", "files": output_files}
+        with VideoFileClip(video_filename) as video:
+            for i, (start, end) in enumerate(timestamps[:3]):
+                s_sec, e_sec = to_sec(start), to_sec(end)
+                clip = video.subclip(s_sec, e_sec)
+                out_path = f"clip_{i+1}.mp4"
+                clip.write_videofile(out_path, codec="libx264", audio_codec="aac")
+                output_files.append(out_path)
+
+        return {"status": "success", "clips": output_files}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
