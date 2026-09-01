@@ -3,4 +3,4 @@ uvicorn
 pydantic
 python-multipart
 google-genai
-moviepy
+moviepy==1.0.3
