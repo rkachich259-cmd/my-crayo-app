@@ -9,7 +9,6 @@ from moviepy.editor import VideoFileClip
 
 app = FastAPI()
 
-# السماح للواجهة بالاتصال بالسيرفر بدون قيود CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,11 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# إنشاء مجلد حفظ الكليبات الناتجة
 CLIPS_DIR = "static/clips"
 os.makedirs(CLIPS_DIR, exist_ok=True)
 
-# إتاحة المجلد كـ Static Files لتمكين التحميل والمعاينة المباشرة
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
@@ -30,7 +27,6 @@ def home():
     return {"message": "Crayo Video Uploader & Clipper Server is Ready!"}
 
 def parse_time_to_seconds(time_str: str) -> float:
-    """تحويل التوقيت من صيغة MM:SS أو HH:MM:SS إلى ثوانٍ"""
     parts = list(map(float, time_str.split(":")))
     if len(parts) == 3:
         return parts[0] * 3600 + parts[1] * 60 + parts[2]
@@ -45,11 +41,9 @@ async def process_video(
 ):
     upload_path = f"temp_{file.filename}"
     try:
-        # 1. حفظ ملف الفيديو المرفوع مؤقتاً
         with open(upload_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 2. رفع الفيديو إلى Gemini API لتحليله
         client = genai.Client(api_key=api_key)
         gemini_file = client.files.upload(file=upload_path)
 
@@ -64,7 +58,6 @@ async def process_video(
             contents=[gemini_file, prompt]
         )
 
-        # 3. استخراج التوقيتات باستخدام Regex
         matches = re.findall(r'(\d+:\d+(?::\d+)?)\s*-\s*(\d+:\d+(?::\d+)?)', response.text)
 
         generated_clips = []
@@ -80,7 +73,6 @@ async def process_video(
                 if end_sec <= start_sec:
                     continue
 
-                # قص الفيديو
                 sub = video_clip.subclip(start_sec, end_sec)
                 out_name = f"clip_{idx+1}_{os.urandom(3).hex()}.mp4"
                 out_path = os.path.join(CLIPS_DIR, out_name)
@@ -100,7 +92,6 @@ async def process_video(
 
             video_clip.close()
 
-        # مسح الملف المؤقت الرئيسي
         if os.path.exists(upload_path):
             os.remove(upload_path)
 
