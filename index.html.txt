@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crayo AI Clone - أداة تقطيع الفيديوهات</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b0f19; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: #161e2e; border: 1px solid #2d3748; border-radius: 16px; padding: 40px; width: 100%; max-width: 550px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        h1 { font-size: 2rem; color: #38bdf8; margin-bottom: 10px; font-weight: 800; }
+        p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 30px; line-height: 1.5; }
+        .form-group { text-align: right; margin-bottom: 20px; }
+        label { display: block; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 8px; font-weight: 600; }
+        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none; transition: 0.3s; }
+        input:focus { border-color: #38bdf8; }
+        button { width: 100%; padding: 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        button:hover { background: #1d4ed8; }
+        .status-box { margin-top: 25px; padding: 15px; border-radius: 8px; background: #0f172a; font-size: 0.9rem; display: none; }
+        .loader { border: 3px solid #1e293b; border-top: 3px solid #38bdf8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Crayo AI ✂️</h1>
+    <p>صمم أفضل 3 كليبات حماسية من أي فيديو يوتيوب مجاناً بالذكاء الاصطناعي</p>
+
+    <div class="form-group">
+        <label>رابط فيديو YouTube / Live:</label>
+        <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+    </div>
+
+    <div class="form-group">
+        <label>مفتاح Google Gemini API:</label>
+        <input type="password" id="apiKey" placeholder="ضع مفتاح الـ API الخاص بك هنا">
+    </div>
+
+    <button onclick="startClipping()">إنشاء الكليبات الآن 🚀</button>
+
+    <div class="status-box" id="statusBox">
+        <div class="loader" id="loader"></div>
+        <span id="statusText">جاري المعالجة... قد يستغرق الأمر دقيقة.</span>
+    </div>
+</div>
+
+<script>
+    async function startClipping() {
+        const url = document.getElementById('videoUrl').value;
+        const key = document.getElementById('apiKey').value;
+        const statusBox = document.getElementById('statusBox');
+        const statusText = document.getElementById('statusText');
+        const loader = document.getElementById('loader');
+
+        if (!url || !key) {
+            alert('يرجى ملء جميع الحقول المطلوبة!');
+            return;
+        }
+
+        statusBox.style.display = 'block';
+        loader.style.display = 'block';
+        statusText.innerText = '⏳ جاري تنزيل الفيديو وتحليله بواسطة الذكاء الاصطناعي...';
+
+        try {
+            // سنقوم بربط هذا الرابط بالسرفر المجاني في المرحلة الثالثة
+            const response = await fetch('YOUR_BACKEND_URL/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ youtube_url: url, api_key: key })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                loader.style.display = 'none';
+                statusText.innerHTML = '🎉 تم تجهيز المقاطع بنجاح! تفضل بتحميلها من السيرفر.';
+            } else {
+                throw new Error(data.message || 'حدث خطأ غير معروف');
+            }
+        } catch (error) {
+            loader.style.display = 'none';
+            statusText.innerText = '❌ حدث خطأ أثناء المعالجة: ' + error.message;
+        }
+    }
+</script>
+
+</body>
+</html>
